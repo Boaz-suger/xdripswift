@@ -17,6 +17,9 @@ public class AlertManager:NSObject {
     /// snoozeCategoryIdentifier for alert notification
     private let snoozeCategoryIdentifier = "snoozeCategoryIdentifier"
     
+    /// genericCarPlayEnabledCategoryIdentifier for alert notification
+    private let genericCarPlayEnabledCategoryIdentifier = "genericCarPlayEnabledCategoryIdentifier"
+    
     /// for logging
     private var log = OSLog(subsystem: ConstantsLog.subSystem, category: ConstantsLog.categoryAlertManager)
     
@@ -546,9 +549,11 @@ public class AlertManager:NSObject {
             if let alertBody = alertBody {content.body = alertBody}
             if let alertTitle = alertTitle {content.title = alertTitle}
             
-            // if snooze from notification in homescreen is needed then set the categoryIdentifier
+            // if snooze from notification in homescreen is needed then set the snoozeCategoryIdentifier
             if applicableAlertType.snooze {
                 content.categoryIdentifier = snoozeCategoryIdentifier
+            } else {
+                content.categoryIdentifier = genericCarPlayEnabledCategoryIdentifier
             }
 
             // The sound
@@ -717,13 +722,16 @@ public class AlertManager:NSObject {
         var mutableExistingCategories = existingCategories
         
         // create the snooze action
-        let action = UNNotificationAction(identifier: snoozeActionIdentifier, title: Texts_Alerts.snooze, options: [])
+        let snooze_action = UNNotificationAction(identifier: snoozeActionIdentifier, title: Texts_Alerts.snooze, options: [])
         
         // create the category - add option customDismissAction, this to make sure userNotificationCenter with didReceive will be called, which in turn will stop the soundPlayer, otherwise the user would dismiss the notification but in case off override mute, the sound keeps on playing
-        let generalCategory = UNNotificationCategory(identifier: snoozeCategoryIdentifier, actions: [action], intentIdentifiers: [], options: [.customDismissAction])
+        let snoozeCategory = UNNotificationCategory(identifier: snoozeCategoryIdentifier, actions: [snooze_action], intentIdentifiers: [], options: [.customDismissAction, .allowInCarPlay])
         
-        // add the category to the UNUserNotificationCenter
-        mutableExistingCategories.insert(generalCategory)
+        let genericCarPlayEnabledCategory = UNNotificationCategory(identifier: genericCarPlayEnabledCategoryIdentifier, actions: [], intentIdentifiers: [], options: [.allowInCarPlay])
+        
+        // add the categories to the UNUserNotificationCenter
+        mutableExistingCategories.insert(snoozeCategory)
+        mutableExistingCategories.insert(genericCarPlayEnabledCategory)
         
         // get UNUserNotificationCenter and set new list of categories
         UNUserNotificationCenter.current().setNotificationCategories(mutableExistingCategories)

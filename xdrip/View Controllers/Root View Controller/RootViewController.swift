@@ -330,17 +330,24 @@ final class RootViewController: UIViewController {
         // setup delegate for UNUserNotificationCenter
         UNUserNotificationCenter.current().delegate = self
         
-        // check if app is allowed to send local notification and if not ask it
+        // check if app is allowed to send local notification and if not request appropriate authorization
+        // if the app is already authorized, check if it is authorized to display notifications on CarPlay as well, if not request that authorization too
         UNUserNotificationCenter.current().getNotificationSettings { (notificationSettings) in
             switch notificationSettings.authorizationStatus {
             case .notDetermined, .denied:
-                UNUserNotificationCenter.current().requestAuthorization(options: [.alert, .sound, .badge]) { (success, error) in
+                UNUserNotificationCenter.current().requestAuthorization(options: [.alert, .sound, .badge, .carPlay]) { (success, error) in
                     if let error = error {
                         trace("Request Notification Authorization Failed : %{public}@", log: self.log, category: ConstantsLog.categoryRootView, type: .error, error.localizedDescription)
                     }
                 }
             default:
-                break
+                if( notificationSettings.carPlaySetting != .enabled ) {
+                    UNUserNotificationCenter.current().requestAuthorization(options: [.carPlay]) { (success, error) in
+                        if let error = error {
+                            trace("Request Notification Authorization for CarPlay Failed : %{public}@", log: self.log, category: ConstantsLog.categoryRootView, type: .error, error.localizedDescription)
+                        }
+                    }
+                }
             }
         }
         
@@ -1245,7 +1252,7 @@ final class RootViewController: UIViewController {
             
             // must set a body otherwise notification doesn't show up on iOS10
             notificationContent.body = " "
-            
+                                 
             // Create Notification Request
             let notificationRequest = UNNotificationRequest(identifier: ConstantsNotifications.NotificationIdentifierForBgReading.bgReadingNotificationRequest, content: notificationContent, trigger: nil)
             
